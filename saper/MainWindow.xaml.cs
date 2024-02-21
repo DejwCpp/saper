@@ -28,6 +28,10 @@ namespace saper
     {
         int globalWidth = 0;
         int globalHeight = 0;
+
+        int globalNumOfBombs = 0;
+        int globalFieldsLeft = 0;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -56,6 +60,12 @@ namespace saper
             globalWidth = width;
             globalHeight = height;
 
+            globalNumOfBombs = (width * height) / 3;
+            globalFieldsLeft = GetNumOfSafeFieldsLeft();
+
+            flagsLeft = globalNumOfBombs;
+
+
             // invicible extra wall
             width += 2;
             height += 2;
@@ -75,21 +85,18 @@ namespace saper
                 btnSize = 90;
                 btnFontSize = 50;
                 btnMargin = 2;
-                flagsLeft = 21;
             }
             if (lvl == "normal")
             {
                 btnSize = 50;
                 btnFontSize = 30;
                 btnMargin = 1;
-                flagsLeft = 85;
             }
             if (lvl == "hard")
             {
                 btnSize = 50;
                 btnFontSize = 25;
                 btnMargin = 1;
-                flagsLeft = 171;
             }
 
             // making grid
@@ -115,7 +122,6 @@ namespace saper
                 {
                     Button btn = new Button
                     {
-                        /*Content = "hi",*/
                         FontSize = btnFontSize,
                         Margin = new Thickness(btnMargin),
                         HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -171,38 +177,19 @@ namespace saper
                 PlaceBombs(sender, e);
 
                 // do the recursion thing
-                exploreEmptyArea(clickedBtn, Grid.GetRow(clickedBtn), Grid.GetColumn(clickedBtn));
+                ExploreEmptyArea(clickedBtn, Grid.GetRow(clickedBtn), Grid.GetColumn(clickedBtn));
 
                 return;
             }
 
             if (clickedBtn.Tag.ToString() == "bomb" || clickedBtn.Tag.ToString() == "bomb_flag")
             {
-                Grid endGame = new Grid();
-
-                endGame.RowDefinitions.Add(new RowDefinition());
-                endGame.ColumnDefinitions.Add(new ColumnDefinition());
-
-                endGame.VerticalAlignment = VerticalAlignment.Center;
-                endGame.HorizontalAlignment = HorizontalAlignment.Center;
-
-                Label youLostText = new Label
-                {
-                    Content = "You lost",
-                    FontSize = 150,
-                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e01a4f"))
-                };
-
-                Grid.SetRow(youLostText, 0);
-                Grid.SetColumn(youLostText, 0);
-
-                endGame.Children.Add(youLostText);
-
-                Content = endGame;
+                GridEndGame("You lost");
             }
 
-            if (clickedBtn.Tag.ToString() == "hide")
+            if (clickedBtn.Tag.ToString() == "hide" || clickedBtn.Tag.ToString() == "flag")
             {
+                globalFieldsLeft = GetNumOfSafeFieldsLeft();
                 clickedBtn.Tag = "open";
                 clickedBtn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f4f3ee"));
 
@@ -212,6 +199,11 @@ namespace saper
                 {
                     clickedBtn.Content = bombsAround.ToString();
                 }
+            }
+
+            if (globalFieldsLeft < 1)
+            {
+                GridEndGame("You won");
             }
         }
 
@@ -236,6 +228,8 @@ namespace saper
             {
                 btn.Tag = "bomb";
                 btn.Background = Brushes.LightYellow;
+                flagsLeft++;
+                UpdateFlagLabel();
                 return;
             }
 
@@ -256,7 +250,7 @@ namespace saper
             UpdateFlagLabel();
         }
 
-        private void exploreEmptyArea(Button btn, int row, int col)
+        private void ExploreEmptyArea(Button btn, int row, int col)
         {
             // checks if in map zone
             if (row < 1 || col < 1 || row > mapGrid.RowDefinitions.Count - 1 || col > mapGrid.ColumnDefinitions.Count - 1) { return; }
@@ -273,21 +267,20 @@ namespace saper
             }
 
             btn.Tag = "open";
-            /*btn.Content = "-";*/
             btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f4f3ee"));
 
             int bombsAround = CountNeighborBombs(row, col);
 
             if (bombsAround == 0)
             {
-                exploreEmptyArea(GetButtonAtCoordinates(row - 1, col - 1), row - 1, col - 1);
-                exploreEmptyArea(GetButtonAtCoordinates(row - 1, col    ), row - 1, col    );
-                exploreEmptyArea(GetButtonAtCoordinates(row - 1, col + 1), row - 1, col + 1);
-                exploreEmptyArea(GetButtonAtCoordinates(row    , col - 1), row    , col - 1);
-                exploreEmptyArea(GetButtonAtCoordinates(row    , col + 1), row    , col + 1);
-                exploreEmptyArea(GetButtonAtCoordinates(row + 1, col - 1), row + 1, col - 1);
-                exploreEmptyArea(GetButtonAtCoordinates(row + 1, col    ), row + 1, col    );
-                exploreEmptyArea(GetButtonAtCoordinates(row + 1, col + 1), row + 1, col + 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row - 1, col - 1), row - 1, col - 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row - 1, col    ), row - 1, col    );
+                ExploreEmptyArea(GetButtonAtCoordinates(row - 1, col + 1), row - 1, col + 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row    , col - 1), row    , col - 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row    , col + 1), row    , col + 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row + 1, col - 1), row + 1, col - 1);
+                ExploreEmptyArea(GetButtonAtCoordinates(row + 1, col    ), row + 1, col    );
+                ExploreEmptyArea(GetButtonAtCoordinates(row + 1, col + 1), row + 1, col + 1);
             }
             else
             {
@@ -318,12 +311,10 @@ namespace saper
 
             Random random = new Random();
 
-            int numOfBombs = (globalWidth * globalHeight) / 5;
-
             int firstClickedRow = Grid.GetRow(firstClickBtn);
             int firstClickedCol = Grid.GetColumn(firstClickBtn);
 
-            for (int i = 0; i < numOfBombs; i++)
+            for (int i = 0; i < globalNumOfBombs; i++)
             {
                 int randomRow, randomCol;
 
@@ -407,7 +398,7 @@ namespace saper
         private void DontChangeColorOnHover(Button btn)
         {
             Style buttonStyle = new Style(typeof(Button));
-            buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, Brushes.LightYellow));
+            buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFED"))));
 
             ControlTemplate template = new ControlTemplate(typeof(Button));
             FrameworkElementFactory borderFactory = new FrameworkElementFactory(typeof(Border));
@@ -423,11 +414,50 @@ namespace saper
             buttonStyle.Setters.Add(new Setter(Button.TemplateProperty, template));
 
             Trigger mouseOverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, Brushes.LightYellow));
+            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFED"))));
 
             buttonStyle.Triggers.Add(mouseOverTrigger);
 
             btn.Style = buttonStyle;
+        }
+
+        private void GridEndGame(string endText)
+        {
+            Grid endGame = new Grid();
+
+            endGame.RowDefinitions.Add(new RowDefinition());
+            endGame.ColumnDefinitions.Add(new ColumnDefinition());
+
+            endGame.VerticalAlignment = VerticalAlignment.Center;
+            endGame.HorizontalAlignment = HorizontalAlignment.Center;
+
+            Label youLostText = new Label
+            {
+                Content = endText,
+                FontSize = 150,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e01a4f"))
+            };
+
+            Grid.SetRow(youLostText, 0);
+            Grid.SetColumn(youLostText, 0);
+
+            endGame.Children.Add(youLostText);
+
+            Content = endGame;
+        }
+
+        private int GetNumOfSafeFieldsLeft()
+        {
+            int res = 0;
+
+            foreach (UIElement element in mapGrid.Children)
+            {
+                if (element is Button btn && btn.Tag.ToString() == "hide" && btn.Visibility != Visibility.Collapsed)
+                {
+                    res++;
+                }
+            }
+            return res - 1;
         }
     }
 }
