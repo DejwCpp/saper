@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Xml.Serialization;
 
 namespace saper
 {
@@ -16,27 +17,50 @@ namespace saper
     /// </summary>
     /// 
 
-    // Tag legend:
+    // Button Tags documentation:
     //
-    // "hide"
-    // "open"
-    // "bomb"
-    // "flag"
-    // "bomb_flag"
+    // "hide"      - default for every button at the beginning
+    // "open"      - buttons that have already been exposed
+    // "bomb"      - undiscovered bomb
+    // "flag"      - placed flag
+    // "bomb_flag" - flag placed on undiscovered bomb
 
     public partial class MainWindow : Window
     {
+        // COLORS //
+        const string windowBgColor      = "#020122";
+        const string hideBtnColor       = "#edd382";
+        const string hideBtnHoverColor  = "#fde392";
+        const string openBtnColor       = "#f2f3ae";
+        const string flagBtnColor       = "#fc9e4f";
+        const string flagsLabel         = "#f4442e";
+        const string YouLostLabelColor  = "#f4442e";
+        const string YouWonLabelColor   = "#f4442e";
+        const string menuBtnsColor      = "#edd382";
+        const string menuBtnsColorHover = "#fde392";
+        // the other colors are set statically
+
+        // GLOBAL VARIABLES //
         int globalWidth = 0;
         int globalHeight = 0;
-
         int globalNumOfBombs = 0;
         int globalFieldsLeft = 0;
+
+        Grid mainGrid = new Grid();
+        Grid flagGrid = new Grid();
+        Grid mapGrid = new Grid();
 
         public MainWindow()
         {
             InitializeComponent();
 
-            grid_menu.Visibility = Visibility.Visible;
+            WindowAlignCenter();
+
+            DisplayMenu();
+
+            SetWindowBgColor(windowBgColor);
+
+            PreventChangingColorOnHoverInMenuButtons(menuBtnsColor, menuBtnsColorHover);
         }
 
         private void SelectLvlButtonClick(object sender, RoutedEventArgs e)
@@ -45,15 +69,10 @@ namespace saper
 
             Button btn = (Button)sender;
 
-            if (btn.Name == "btnEasy")   { GenerateMap( 8,  8, "easy"  ); }
+            if (btn.Name == "btnEasy"  ) { GenerateMap( 8,  8, "easy"  ); }
             if (btn.Name == "btnNormal") { GenerateMap(16, 16, "normal"); }
-            if (btn.Name == "btnHard")   { GenerateMap(32, 16, "hard"  ); }
+            if (btn.Name == "btnHard"  ) { GenerateMap(32, 16, "hard"  ); }
         }
-
-        Grid mainGrid = new Grid();
-        Grid flagGrid = new Grid();
-        Grid mapGrid = new Grid();
-
 
         private void GenerateMap(int width, int height, string lvl)
         {
@@ -61,10 +80,8 @@ namespace saper
             globalHeight = height;
 
             globalNumOfBombs = (width * height) / 3;
-            globalFieldsLeft = GetNumOfSafeFieldsLeft();
 
             flagsLeft = globalNumOfBombs;
-
 
             // invicible extra wall
             width += 2;
@@ -74,11 +91,10 @@ namespace saper
             WindowState = WindowState.Maximized;
             ResizeMode = ResizeMode.NoResize;
 
-            // setting needed data depending on level
+            // setting button data depending on level
             int btnSize = 0;
             int btnFontSize = 0;
             int btnMargin = 0;
-
 
             if (lvl == "easy")
             {
@@ -99,7 +115,7 @@ namespace saper
                 btnMargin = 1;
             }
 
-            // making grid
+            // making mapGrid dynamically
             mapGrid.VerticalAlignment = VerticalAlignment.Center;
             mapGrid.HorizontalAlignment = HorizontalAlignment.Center;
 
@@ -124,43 +140,30 @@ namespace saper
                     {
                         FontSize = btnFontSize,
                         Margin = new Thickness(btnMargin),
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        VerticalAlignment = VerticalAlignment.Stretch,
                         Tag = "hide"
                     };
 
                     btn.Click  += LeftBtnClick;
                     btn.MouseRightButtonDown += RightBtnClick;
 
-                    // Set the row and column properties
                     Grid.SetRow(btn, row);
                     Grid.SetColumn(btn, col);
 
-                    // Add the button to the main grid
                     mapGrid.Children.Add(btn);
 
-                    DontChangeColorOnHover(btn);
+                    PreventChangingColorOnHover(btn, hideBtnColor, hideBtnHoverColor);
 
+                    // hide extra walls
                     if ((row == 0 || row == height - 1) || (col == 0 || col == width - 1))
                     {
-                        /*btn.Opacity = 0;*/
                         btn.Visibility = Visibility.Collapsed;
                     }
                 }
             }
+            globalFieldsLeft = GetNumOfSafeFieldsLeft();
 
-            // placing 2 sub grids to main grid
-            mainGrid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(100) });
-            mainGrid.RowDefinitions.Add(new RowDefinition());
-            mainGrid.ColumnDefinitions.Add(new ColumnDefinition());
-
-            AddFlagLabel();
-
-            Grid.SetRow(mapGrid, 1);
-
-            mainGrid.Children.Add(mapGrid);
-
-            Content = mainGrid;
+            // placing flagGrid and mapGrid to mainGrid
+            PlaceSubgridsToMainGrid();
         }
 
         bool isFirstClick = true;
@@ -184,14 +187,14 @@ namespace saper
 
             if (clickedBtn.Tag.ToString() == "bomb" || clickedBtn.Tag.ToString() == "bomb_flag")
             {
-                GridEndGame("You lost");
+                GridEndGame("You lost", YouLostLabelColor);
             }
 
             if (clickedBtn.Tag.ToString() == "hide" || clickedBtn.Tag.ToString() == "flag")
             {
-                globalFieldsLeft = GetNumOfSafeFieldsLeft();
                 clickedBtn.Tag = "open";
-                clickedBtn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f4f3ee"));
+                globalFieldsLeft = GetNumOfSafeFieldsLeft();
+                clickedBtn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(openBtnColor));
 
                 int bombsAround = CountNeighborBombs(Grid.GetRow(clickedBtn), Grid.GetColumn(clickedBtn));
 
@@ -203,12 +206,13 @@ namespace saper
 
             if (globalFieldsLeft < 1)
             {
-                GridEndGame("You won");
+                GridEndGame("You won", YouWonLabelColor);
             }
         }
 
         private void RightBtnClick(object sender, RoutedEventArgs e)
         {
+            // prevents placing flags before first click
             if (isFirstClick) { return; }
 
             Button btn = (Button)sender;
@@ -218,7 +222,7 @@ namespace saper
             if (btn.Tag.ToString() == "flag")
             {
                 btn.Tag = "hide";
-                btn.Background = Brushes.LightYellow;
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
                 flagsLeft++;
                 UpdateFlagLabel();
                 return;
@@ -227,7 +231,7 @@ namespace saper
             if (btn.Tag.ToString() == "bomb_flag")
             {
                 btn.Tag = "bomb";
-                btn.Background = Brushes.LightYellow;
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
                 flagsLeft++;
                 UpdateFlagLabel();
                 return;
@@ -244,7 +248,7 @@ namespace saper
                 btn.Tag = "flag";
             }
 
-            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f9c22e"));
+            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
             flagsLeft--;
 
             UpdateFlagLabel();
@@ -255,19 +259,13 @@ namespace saper
             // checks if in map zone
             if (row < 1 || col < 1 || row > mapGrid.RowDefinitions.Count - 1 || col > mapGrid.ColumnDefinitions.Count - 1) { return; }
 
-            if (btn.Tag.ToString() == "number")
-            {
-                btn.Content = "num";
-                return;
-            }
-
             if (btn.Tag.ToString() == "open" || btn.Tag.ToString() == "bomb")
             {
                 return;
             }
 
             btn.Tag = "open";
-            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f4f3ee"));
+            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(openBtnColor));
 
             int bombsAround = CountNeighborBombs(row, col);
 
@@ -318,7 +316,7 @@ namespace saper
             {
                 int randomRow, randomCol;
 
-                do
+                do 
                 {
                     randomRow = random.Next(1, mapGrid.RowDefinitions.Count - 1);
                     randomCol = random.Next(1, mapGrid.ColumnDefinitions.Count - 1);
@@ -329,7 +327,6 @@ namespace saper
                 if (bombBtn != null && bombBtn.Tag.ToString() != "bomb")
                 {
                     bombBtn.Tag = "bomb";
-                    /*bombBtn.Content = "💣";*/
                 }
                 else
                 {
@@ -352,25 +349,37 @@ namespace saper
 
         private bool IsNeighboringButton(int clickedRow, int clickedCol, int testRow, int testCol)
         {
-            // Check if the tested button is neighboring the clicked button
             return Math.Abs(clickedRow - testRow) <= 1 && Math.Abs(clickedCol - testCol) <= 1;
         }
-
 
         int flagsLeft = 0;
 
         Label flag = new Label
         {
-            Content = "Flags: ",
+            Content = "Flags: ?",
             FontSize = 50,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e01a4f"))
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagsLabel))
         };
+
+        private void PlaceSubgridsToMainGrid()
+        {
+            mainGrid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(100) });
+            mainGrid.RowDefinitions.Add(new RowDefinition());
+            mainGrid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            AddFlagLabel();
+
+            Grid.SetRow(mapGrid, 1);
+
+            mainGrid.Children.Add(mapGrid);
+
+            Content = mainGrid;
+        }
 
         private void AddFlagLabel()
         {
             UpdateFlagLabel();
 
-            /*flagGrid.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#fff"));*/
             flagGrid.Margin = new Thickness(0, 0, 0, 0);
 
             flagGrid.RowDefinitions.Add(new RowDefinition());
@@ -395,10 +404,11 @@ namespace saper
             flag.Content = "Flags: " + flagsLeft;
         }
 
-        private void DontChangeColorOnHover(Button btn)
+        // By default, when you hover over a button, its color changes to light blue. This function prevents this behavior
+        private void PreventChangingColorOnHover(Button btn, string color, string colorHover)
         {
             Style buttonStyle = new Style(typeof(Button));
-            buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFED"))));
+            buttonStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(color))));
 
             ControlTemplate template = new ControlTemplate(typeof(Button));
             FrameworkElementFactory borderFactory = new FrameworkElementFactory(typeof(Border));
@@ -414,14 +424,25 @@ namespace saper
             buttonStyle.Setters.Add(new Setter(Button.TemplateProperty, template));
 
             Trigger mouseOverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFED"))));
+            mouseOverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHover))));
 
             buttonStyle.Triggers.Add(mouseOverTrigger);
 
             btn.Style = buttonStyle;
         }
 
-        private void GridEndGame(string endText)
+        private void PreventChangingColorOnHoverInMenuButtons(string color, string colorHover)
+        {
+            Button btnEasy = (Button)FindName("btnEasy");
+            Button btnNormal = (Button)FindName("btnNormal");
+            Button btnHard = (Button)FindName("btnHard");
+
+            PreventChangingColorOnHover(btnEasy, color, colorHover);
+            PreventChangingColorOnHover(btnNormal, color, colorHover);
+            PreventChangingColorOnHover(btnHard, color, colorHover);
+        }
+
+        private void GridEndGame(string endText, string textColor)
         {
             Grid endGame = new Grid();
 
@@ -435,7 +456,7 @@ namespace saper
             {
                 Content = endText,
                 FontSize = 150,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e01a4f"))
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textColor))
             };
 
             Grid.SetRow(youLostText, 0);
@@ -457,7 +478,22 @@ namespace saper
                     res++;
                 }
             }
-            return res - 1;
+            return res;
+        }
+
+        private void DisplayMenu()
+        {
+            grid_menu.Visibility = Visibility.Visible;
+        }
+
+        private void SetWindowBgColor(string color)
+        {
+            mainWindow.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+        }
+
+        private void WindowAlignCenter()
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
     }
 }
