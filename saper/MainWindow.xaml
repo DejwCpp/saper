@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:saper"
         mc:Ignorable="d"
-        Title="Saper" Height="600" Width="800" Background="#FF1E2D2F" Name="mainWindow">
+        Title="Saper" Height="600" Width="800" Background="#FF1E2D2F" Name="mainWindow" Icon="/saper-png.png">
     <Grid>
         <Grid x:Name="grid_menu" Visibility="Visible">
             <Grid.RowDefinitions>

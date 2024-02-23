@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.CodeDom;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -38,6 +39,7 @@ namespace saper
         const string YouWonLabelColor   = "#f4442e";
         const string menuBtnsColor      = "#edd382";
         const string menuBtnsColorHover = "#fde392";
+        const string menuBtnsFontColor  = "#020122";
         // the other colors are set statically
 
         // GLOBAL VARIABLES //
@@ -61,6 +63,8 @@ namespace saper
             SetWindowBgColor(windowBgColor);
 
             PreventChangingColorOnHoverInMenuButtons(menuBtnsColor, menuBtnsColorHover);
+
+            SetMenuButtonsColor();
 
             this.SizeChanged += MainWindow_SizeChanged;
         }
@@ -461,6 +465,17 @@ namespace saper
             PreventChangingColorOnHover(btnEasy, color, colorHover);
             PreventChangingColorOnHover(btnNormal, color, colorHover);
             PreventChangingColorOnHover(btnHard, color, colorHover);
+        }
+
+        private void SetMenuButtonsColor()
+        {
+            Button btnEasy = (Button)FindName("btnEasy");
+            Button btnNormal = (Button)FindName("btnNormal");
+            Button btnHard = (Button)FindName("btnHard");
+
+            btnEasy.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(menuBtnsFontColor));
+            btnNormal.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(menuBtnsFontColor));
+            btnHard.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(menuBtnsFontColor));
         }
 
         private void GridEndGame(string endText, string textColor)
