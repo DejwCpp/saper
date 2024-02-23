@@ -18,7 +18,7 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="0" Content="Saper" FontSize="120" FontFamily="Algerian" Foreground="#f4442e" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+            <Label Grid.Row="1" Grid.Column="0" Content="Saper" FontSize="140" FontFamily="Algerian" Foreground="#f4442e" HorizontalAlignment="Center" VerticalAlignment="Top" Name="saperLabelMenu"/>
 
             <StackPanel Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Button x:Name="btnEasy" Content="Easy" FontSize="36" Width="300" Margin="0,0,0,5" Click="SelectLvlButtonClick" FontFamily="Bahnschrift SemiBold"/>

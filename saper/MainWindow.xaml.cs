@@ -61,6 +61,27 @@ namespace saper
             SetWindowBgColor(windowBgColor);
 
             PreventChangingColorOnHoverInMenuButtons(menuBtnsColor, menuBtnsColorHover);
+
+            this.SizeChanged += MainWindow_SizeChanged;
+        }
+
+        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Updates menu label's and buttons font size in menu window
+            double scaleFactor = Math.Min(this.ActualWidth / 800, this.ActualHeight / 600);
+
+            double LabelFontSize = 140 * scaleFactor;
+            double ButtonFontSize = 40 * scaleFactor;
+            double ButtonWidth = 300 * scaleFactor;
+
+            saperLabelMenu.FontSize = LabelFontSize;
+            btnEasy.FontSize = ButtonFontSize;
+            btnNormal.FontSize = ButtonFontSize;
+            btnHard.FontSize = ButtonFontSize;
+
+            btnEasy.Width = ButtonWidth;
+            btnNormal.Width = ButtonWidth;
+            btnHard.Width = ButtonWidth;
         }
 
         private void SelectLvlButtonClick(object sender, RoutedEventArgs e)
