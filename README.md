@@ -16,3 +16,8 @@
 - bomb positioning is random, what's making it impossible to win without guessing the safe field
 
 ![Something is wrong](https://github.com/DejwCpp/saper/blob/master/img/generating-bombs-issue.jpg)
+
+## Future Modifications:
+
+- saving users score to a file
+- displaying the user's score and the best score
