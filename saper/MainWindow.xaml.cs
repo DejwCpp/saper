@@ -1,4 +1,5 @@
 ﻿using System.CodeDom;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using System.Xml.Serialization;
 
 namespace saper
@@ -34,9 +36,13 @@ namespace saper
         const string hideBtnHoverColor  = "#fde392";
         const string openBtnColor       = "#f2f3ae";
         const string flagBtnColor       = "#fc9e4f";
-        const string flagsLabel         = "#f4442e";
+        const string flagsLabelColor    = "#f4442e";
+        const string timerLabelColor    = "#f4442e";
         const string YouLostLabelColor  = "#f4442e";
         const string YouWonLabelColor   = "#f4442e";
+        const string yourScoreColor     = "#f4442e";
+        const string bestScoreColor     = "#f4442e";
+        const string newRecordColor     = "#16db65";
         const string menuBtnsColor      = "#edd382";
         const string menuBtnsColorHover = "#fde392";
         const string menuBtnsFontColor  = "#020122";
@@ -47,9 +53,15 @@ namespace saper
         int globalHeight = 0;
         int globalNumOfBombs = 0;
         int globalFieldsLeft = 0;
+        int globalYourScoreConverted = 0;
+
+        string globalLevel = "none";
+        string globalBestScore = "999999";
+
+        bool globalShowBestScore = true;
 
         Grid mainGrid = new Grid();
-        Grid flagGrid = new Grid();
+        Grid headerGrid = new Grid();
         Grid mapGrid = new Grid();
 
         public MainWindow()
@@ -94,17 +106,19 @@ namespace saper
 
             Button btn = (Button)sender;
 
-            if (btn.Name == "btnEasy"  ) { GenerateMap( 8,  8, "easy"  ); }
-            if (btn.Name == "btnNormal") { GenerateMap(16, 16, "normal"); }
-            if (btn.Name == "btnHard"  ) { GenerateMap(32, 16, "hard"  ); }
+            if (btn.Name == "btnEasy"  ) { globalWidth = 8;  globalHeight = 8;  globalLevel = "easy";   }
+            if (btn.Name == "btnNormal") { globalWidth = 16; globalHeight = 16; globalLevel = "normal"; }
+            if (btn.Name == "btnHard"  ) { globalWidth = 32; globalHeight = 16; globalLevel = "hard";   }
+
+            GenerateMap(globalWidth, globalHeight, globalLevel);
         }
 
         private void GenerateMap(int width, int height, string lvl)
         {
-            globalWidth = width;
-            globalHeight = height;
+            width = globalWidth;
+            height = globalHeight;
 
-            globalNumOfBombs = (width * height) / 3;
+            globalNumOfBombs = (width * height) / 20;
 
             flagsLeft = globalNumOfBombs;
 
@@ -187,7 +201,9 @@ namespace saper
             }
             globalFieldsLeft = GetNumOfSafeFieldsLeft();
 
-            // placing flagGrid and mapGrid to mainGrid
+            AddStoperLabel();
+
+            // placing headerGrid and mapGrid to mainGrid
             PlaceSubgridsToMainGrid();
         }
 
@@ -206,6 +222,8 @@ namespace saper
 
                 // do the recursion thing
                 ExploreEmptyArea(clickedBtn, Grid.GetRow(clickedBtn), Grid.GetColumn(clickedBtn));
+
+                timer.Start();
 
                 return;
             }
@@ -231,8 +249,107 @@ namespace saper
 
             if (globalFieldsLeft < 1)
             {
+                timer.Stop();
+
+                globalBestScore = GetBestScore();
+
+                WriteScoreToFile();
+
                 GridEndGame("You won", YouWonLabelColor);
             }
+        }
+        private void WriteScoreToFile()
+        {
+            string filePath = $"best-scores/{globalLevel}.txt";
+            int[] arrScore = ConvertYourScoreStringToIntArray();
+
+            int score = arrScore[0];
+
+            if (arrScore.Length > 1)
+            {
+                score += (arrScore[1] * 60);
+            }
+            if (arrScore.Length > 2)
+            {
+                score += (arrScore[2] * 60 * 60);
+            }
+
+            globalYourScoreConverted = score;
+
+            try
+            {
+                File.AppendAllText(filePath, globalYourScoreConverted.ToString() + '\n');
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}");
+            }
+        }
+
+        private int[] ConvertYourScoreStringToIntArray()
+        {
+            string[] parts = timerContent.Split(':');
+
+            int[] result = new int[parts.Length];
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (int.TryParse(parts[i], out int value))
+                {
+                    result[i] = value;
+                }
+                else
+                {
+                    Console.WriteLine($"Error parsing '{parts[i]}' to an integer");
+                }
+            }
+            Array.Reverse(result);
+
+            return result;
+        }
+
+        private string GetBestScore()
+        {
+            string filePath = $"best-scores/{globalLevel}.txt";
+
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    string[] lines = File.ReadAllLines(filePath);
+                    
+                    if (lines.Length > 0)
+                    {
+                        int[] allScores = lines.Select(int.Parse).ToArray();
+
+                        int bestScore = allScores.Min();
+
+                        // converting e.g. from 60 to 1:00 or from 100 to 1:40
+                        string bestScoreFixed = "";
+
+                        if (bestScore >= 60 * 60)
+                        {
+                            bestScore %= 3600;
+                            bestScoreFixed += bestScore / 3600 + ':';
+                        }
+                        if (bestScore >= 60)
+                        {
+                            bestScore %= 60;
+                            bestScoreFixed += bestScore / 60 + ':';
+                        }
+                        bestScoreFixed += bestScore.ToString();
+
+                        return bestScoreFixed;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading scores from file: {ex.Message}");
+                }
+            }
+            globalShowBestScore = false;
+
+            return "-1";
         }
 
         private void RightBtnClick(object sender, RoutedEventArgs e)
@@ -377,14 +494,95 @@ namespace saper
             return Math.Abs(clickedRow - testRow) <= 1 && Math.Abs(clickedCol - testCol) <= 1;
         }
 
+        private DispatcherTimer timer;
+        private TimeSpan elapsedTime;
+        private void AddStoperLabel()
+        {
+
+            timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(1);
+            timer.Tick += Timer_Tick;
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            elapsedTime = elapsedTime.Add(TimeSpan.FromSeconds(1));
+            UpdateTimeLabel();
+        }
+
+        string timerContent = "0";
+
+        private void UpdateTimeLabel()
+        {
+            if (elapsedTime.TotalHours >= 1)
+            {
+                timerContent = $"{(int)elapsedTime.TotalHours:D}:{elapsedTime.Minutes:D2}:{elapsedTime.Seconds:D2}";
+            }
+            else if (elapsedTime.TotalMinutes >= 1)
+            {
+                timerContent = $"{elapsedTime.Minutes:D}:{elapsedTime.Seconds:D2}";
+            }
+            else
+            {
+                timerContent = $"{elapsedTime.Seconds:D}";
+            }
+
+            timerLabel.Content = "Timer: " + timerContent;
+        }
+
         int flagsLeft = 0;
 
         Label flag = new Label
         {
             Content = "Flags: ?",
             FontSize = 50,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagsLabel))
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagsLabelColor)),
+            Margin = new Thickness(300, 0, 0, 0)
         };
+
+        Label timerLabel = new Label
+        {
+            Content = "Timer: 0",
+            FontSize = 50,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(timerLabelColor)),
+            Margin = new Thickness(75, 0, 0, 0)
+        };
+
+        private void AddHeaderLabel()
+        {
+            headerGrid.HorizontalAlignment = HorizontalAlignment.Center;
+            headerGrid.VerticalAlignment = VerticalAlignment.Center;
+
+            headerGrid.Margin = new Thickness(0, 0, 0, 0);
+
+            headerGrid.RowDefinitions.Add(new RowDefinition());
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(600) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(600) });
+
+            // adding flag to headerGrid
+            UpdateFlagLabel();
+
+            flag.HorizontalAlignment = HorizontalAlignment.Left;
+
+            Grid.SetRow(flag, 0);
+            Grid.SetColumn(flag, 0);
+
+            headerGrid.Children.Add(flag);
+
+            // adding stoper to headerGrid
+            timerLabel.HorizontalAlignment = HorizontalAlignment.Left;
+
+            Grid.SetRow(timerLabel, 0);
+            Grid.SetColumn(timerLabel, 1);
+
+            headerGrid.Children.Add(timerLabel);
+
+            // adding headerGrid to mainGrid
+            Grid.SetRow(headerGrid, 0);
+            Grid.SetColumn(headerGrid, 0);
+
+            mainGrid.Children.Add(headerGrid);
+        }
 
         private void PlaceSubgridsToMainGrid()
         {
@@ -392,36 +590,13 @@ namespace saper
             mainGrid.RowDefinitions.Add(new RowDefinition());
             mainGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            AddFlagLabel();
+            AddHeaderLabel();
 
             Grid.SetRow(mapGrid, 1);
 
             mainGrid.Children.Add(mapGrid);
 
             Content = mainGrid;
-        }
-
-        private void AddFlagLabel()
-        {
-            UpdateFlagLabel();
-
-            flagGrid.Margin = new Thickness(0, 0, 0, 0);
-
-            flagGrid.RowDefinitions.Add(new RowDefinition());
-            flagGrid.ColumnDefinitions.Add(new ColumnDefinition());
-
-            flagGrid.HorizontalAlignment = HorizontalAlignment.Center;
-            flagGrid.VerticalAlignment = VerticalAlignment.Center;
-
-            Grid.SetRow(flag, 0);
-            Grid.SetColumn(flag, 0);
-
-            flagGrid.Children.Add(flag);
-
-            Grid.SetRow(flagGrid, 0);
-            Grid.SetColumn(flagGrid, 0);
-
-            mainGrid.Children.Add(flagGrid);
         }
 
         private void UpdateFlagLabel()
@@ -480,25 +655,82 @@ namespace saper
 
         private void GridEndGame(string endText, string textColor)
         {
+            Label endGameLabel = new Label
+            {
+                Content = endText,
+                FontSize = 150,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textColor)),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            Label yourScore = new Label
+            {
+                Content = "Your score: " + timerContent,
+                FontSize = 50,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(yourScoreColor)),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            Label bestScore = new Label
+            {
+                Content = "Best score: " + globalBestScore,
+                FontSize = 50,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bestScoreColor)),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            Label newRecord = new Label
+            {
+                Content = "Congratulations, you've scored a new record",
+                FontSize = 50,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(newRecordColor)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 150, 0, 0)
+            };
+
             Grid endGame = new Grid();
 
+            endGame.RowDefinitions.Add(new RowDefinition());
+            endGame.RowDefinitions.Add(new RowDefinition());
+            endGame.RowDefinitions.Add(new RowDefinition());
             endGame.RowDefinitions.Add(new RowDefinition());
             endGame.ColumnDefinitions.Add(new ColumnDefinition());
 
             endGame.VerticalAlignment = VerticalAlignment.Center;
             endGame.HorizontalAlignment = HorizontalAlignment.Center;
 
-            Label youLostText = new Label
+            // adding endGameLabel to endGame grid
+            Grid.SetRow(endGameLabel, 0);
+            Grid.SetColumn(endGameLabel, 0);
+
+            endGame.Children.Add(endGameLabel);
+
+            if (endText == "You won")
             {
-                Content = endText,
-                FontSize = 150,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textColor))
-            };
+                // adding yourScore to endGame grid
+                Grid.SetRow(yourScore, 1);
+                Grid.SetColumn(yourScore, 0);
 
-            Grid.SetRow(youLostText, 0);
-            Grid.SetColumn(youLostText, 0);
+                endGame.Children.Add(yourScore);
 
-            endGame.Children.Add(youLostText);
+                if (globalShowBestScore)
+                {
+                    // adding bestScore to endGame grid
+                    Grid.SetRow(bestScore, 2);
+                    Grid.SetColumn(bestScore, 0);
+
+                    endGame.Children.Add(bestScore);
+                }
+
+                if (globalYourScoreConverted < int.Parse(globalBestScore))
+                {
+                    // adding newRecord to endGame grid
+                    Grid.SetRow(newRecord, 4);
+                    Grid.SetColumn(newRecord, 0);
+
+                    endGame.Children.Add(newRecord);
+                }
+            }
 
             Content = endGame;
         }
