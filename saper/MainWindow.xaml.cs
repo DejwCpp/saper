@@ -54,9 +54,10 @@ namespace saper
         int globalNumOfBombs = 0;
         int globalFieldsLeft = 0;
         int globalYourScoreConverted = 0;
+        int globalBestScore = 0;
 
         string globalLevel = "none";
-        string globalBestScore = "999999";
+        string globalBestScoreFixed = "none";
 
         bool globalShowBestScore = true;
 
@@ -118,7 +119,7 @@ namespace saper
             width = globalWidth;
             height = globalHeight;
 
-            globalNumOfBombs = (width * height) / 20;
+            globalNumOfBombs = (width * height) / 15;
 
             flagsLeft = globalNumOfBombs;
 
@@ -233,7 +234,7 @@ namespace saper
                 GridEndGame("You lost", YouLostLabelColor);
             }
 
-            if (clickedBtn.Tag.ToString() == "hide" || clickedBtn.Tag.ToString() == "flag")
+            if (clickedBtn.Tag.ToString() == "hide" || clickedBtn.Tag.ToString() == "hide_flag")
             {
                 clickedBtn.Tag = "open";
                 globalFieldsLeft = GetNumOfSafeFieldsLeft();
@@ -251,7 +252,7 @@ namespace saper
             {
                 timer.Stop();
 
-                globalBestScore = GetBestScore();
+                globalBestScoreFixed = GetBestScore();
 
                 WriteScoreToFile();
 
@@ -324,18 +325,27 @@ namespace saper
 
                         int bestScore = allScores.Min();
 
-                        // converting e.g. from 60 to 1:00 or from 100 to 1:40
+                        globalBestScore = bestScore;
+
+                        // converting e.g. from 60 to 1:00 or from 100 to 1:40     /////////////////////////// jak to zaczalem zmieniac to wywala program
                         string bestScoreFixed = "";
 
                         if (bestScore >= 60 * 60)
                         {
+                            bestScoreFixed += bestScore / 3600;
+                            bestScoreFixed += ':';
                             bestScore %= 3600;
-                            bestScoreFixed += bestScore / 3600 + ':';
                         }
                         if (bestScore >= 60)
                         {
+                            bestScoreFixed += bestScore / 60;
+                            bestScoreFixed += ':';
                             bestScore %= 60;
-                            bestScoreFixed += bestScore / 60 + ':';
+
+                            if (bestScore < 10)
+                            {
+                                bestScoreFixed += '0';
+                            }
                         }
                         bestScoreFixed += bestScore.ToString();
 
@@ -361,7 +371,7 @@ namespace saper
 
             if (btn.Tag.ToString() == "open") { return; }
 
-            if (btn.Tag.ToString() == "flag")
+            if (btn.Tag.ToString() == "hide_flag")
             {
                 btn.Tag = "hide";
                 btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
@@ -369,7 +379,6 @@ namespace saper
                 UpdateFlagLabel();
                 return;
             }
-
             if (btn.Tag.ToString() == "bomb_flag")
             {
                 btn.Tag = "bomb";
@@ -381,6 +390,14 @@ namespace saper
 
             if (flagsLeft <= 0) { return; }
 
+            if (btn.Tag.ToString() == "hide")
+            {
+                btn.Tag = "hide_flag";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
+                flagsLeft--;
+                UpdateFlagLabel();
+                return;
+            }
             if (btn.Tag.ToString() == "bomb")
             {
                 btn.Tag = "bomb_flag";
@@ -388,6 +405,15 @@ namespace saper
             else
             {
                 btn.Tag = "flag";
+            }
+
+            if (btn.Tag.ToString() == "flag")
+            {
+                btn.Tag = "hide";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
+                flagsLeft++;
+                UpdateFlagLabel();
+                return;
             }
 
             btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
@@ -673,7 +699,7 @@ namespace saper
 
             Label bestScore = new Label
             {
-                Content = "Best score: " + globalBestScore,
+                Content = "Best score: " + globalBestScoreFixed,
                 FontSize = 50,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bestScoreColor)),
                 HorizontalAlignment = HorizontalAlignment.Center
@@ -722,7 +748,7 @@ namespace saper
                     endGame.Children.Add(bestScore);
                 }
 
-                if (globalYourScoreConverted < int.Parse(globalBestScore))
+                if (globalYourScoreConverted < globalBestScore)
                 {
                     // adding newRecord to endGame grid
                     Grid.SetRow(newRecord, 4);

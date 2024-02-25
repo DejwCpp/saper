@@ -11,6 +11,10 @@
 
 ![Something is wrong](https://github.com/DejwCpp/saper/blob/master/img/menu.jpg)
 
+## setting a new record:
+
+![Something is wrong](https://github.com/DejwCpp/saper/blob/master/img/new-record.PNG)
+
 ## issues:
 
 - bomb positioning is random, what's making it impossible to win without guessing the safe field
@@ -19,5 +23,4 @@
 
 ## Future Modifications:
 
-- saving users score to a file
-- displaying the user's score and the best score
+-
