@@ -119,7 +119,7 @@ namespace saper
             width = globalWidth;
             height = globalHeight;
 
-            globalNumOfBombs = (width * height) / 15;
+            globalNumOfBombs = (width * height) / 3;
 
             flagsLeft = globalNumOfBombs;
 

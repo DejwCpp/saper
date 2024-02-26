@@ -1,6 +1,6 @@
 # saper
 
-- technology: wpf C#
+- technology: wpf C# net-8.0
 - how to open app: saper > bin > Debug > net8.0-windows > saper.exe
 
 ## what it looks like:
