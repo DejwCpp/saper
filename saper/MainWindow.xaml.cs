@@ -119,7 +119,7 @@ namespace saper
             width = globalWidth;
             height = globalHeight;
 
-            globalNumOfBombs = (width * height) / 3;
+            globalNumOfBombs = (width * height) / 10;
 
             flagsLeft = globalNumOfBombs;
 
@@ -246,6 +246,13 @@ namespace saper
                 {
                     clickedBtn.Content = bombsAround.ToString();
                 }
+                else if (bombsAround == 0)
+                {
+                    // in recursion it returns buttons with tag open
+                    clickedBtn.Tag = "hide";
+
+                    ExploreEmptyArea(clickedBtn, Grid.GetRow(clickedBtn), Grid.GetColumn(clickedBtn));
+                }
             }
 
             if (globalFieldsLeft < 1)
@@ -259,6 +266,67 @@ namespace saper
                 GridEndGame("You won", YouWonLabelColor);
             }
         }
+
+        private void RightBtnClick(object sender, RoutedEventArgs e)
+        {
+            // prevents placing flags before first click
+            if (isFirstClick) { return; }
+
+            Button btn = (Button)sender;
+
+            if (btn.Tag.ToString() == "open") { return; }
+
+            if (btn.Tag.ToString() == "hide_flag")
+            {
+                btn.Tag = "hide";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
+                flagsLeft++;
+                UpdateFlagLabel();
+                return;
+            }
+            if (btn.Tag.ToString() == "bomb_flag")
+            {
+                btn.Tag = "bomb";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
+                flagsLeft++;
+                UpdateFlagLabel();
+                return;
+            }
+
+            if (flagsLeft <= 0) { return; }
+
+            if (btn.Tag.ToString() == "hide")
+            {
+                btn.Tag = "hide_flag";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
+                flagsLeft--;
+                UpdateFlagLabel();
+                return;
+            }
+            if (btn.Tag.ToString() == "bomb")
+            {
+                btn.Tag = "bomb_flag";
+            }
+            else
+            {
+                btn.Tag = "flag";
+            }
+
+            if (btn.Tag.ToString() == "flag")
+            {
+                btn.Tag = "hide";
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
+                flagsLeft++;
+                UpdateFlagLabel();
+                return;
+            }
+
+            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
+            flagsLeft--;
+
+            UpdateFlagLabel();
+        }
+
         private void WriteScoreToFile()
         {
             string filePath = $"best-scores/{globalLevel}.txt";
@@ -360,66 +428,6 @@ namespace saper
             globalShowBestScore = false;
 
             return "-1";
-        }
-
-        private void RightBtnClick(object sender, RoutedEventArgs e)
-        {
-            // prevents placing flags before first click
-            if (isFirstClick) { return; }
-
-            Button btn = (Button)sender;
-
-            if (btn.Tag.ToString() == "open") { return; }
-
-            if (btn.Tag.ToString() == "hide_flag")
-            {
-                btn.Tag = "hide";
-                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
-                flagsLeft++;
-                UpdateFlagLabel();
-                return;
-            }
-            if (btn.Tag.ToString() == "bomb_flag")
-            {
-                btn.Tag = "bomb";
-                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
-                flagsLeft++;
-                UpdateFlagLabel();
-                return;
-            }
-
-            if (flagsLeft <= 0) { return; }
-
-            if (btn.Tag.ToString() == "hide")
-            {
-                btn.Tag = "hide_flag";
-                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
-                flagsLeft--;
-                UpdateFlagLabel();
-                return;
-            }
-            if (btn.Tag.ToString() == "bomb")
-            {
-                btn.Tag = "bomb_flag";
-            }
-            else
-            {
-                btn.Tag = "flag";
-            }
-
-            if (btn.Tag.ToString() == "flag")
-            {
-                btn.Tag = "hide";
-                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hideBtnColor));
-                flagsLeft++;
-                UpdateFlagLabel();
-                return;
-            }
-
-            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flagBtnColor));
-            flagsLeft--;
-
-            UpdateFlagLabel();
         }
 
         private void ExploreEmptyArea(Button btn, int row, int col)
