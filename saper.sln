@@ -5,8 +5,6 @@ VisualStudioVersion = 17.8.34511.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "saper", "saper\saper.csproj", "{F654AF2A-28D0-4FF9-8595-31BE74D550F0}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup-saper", "Setup-saper\Setup-saper.vdproj", "{1FF50F4E-6FD6-4A18-9439-3BBE52D953B6}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,8 +15,6 @@ Global
 		{F654AF2A-28D0-4FF9-8595-31BE74D550F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F654AF2A-28D0-4FF9-8595-31BE74D550F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F654AF2A-28D0-4FF9-8595-31BE74D550F0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1FF50F4E-6FD6-4A18-9439-3BBE52D953B6}.Debug|Any CPU.ActiveCfg = Debug
-		{1FF50F4E-6FD6-4A18-9439-3BBE52D953B6}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
