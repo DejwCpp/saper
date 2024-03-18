@@ -1,7 +1,7 @@
 # saper
 
 - technology: wpf C# net-8.0
-- how to install app: _avalible soon_
+- how to install app: setup-saper > Debug > setup.exe
 
 ## what it looks like:
 
